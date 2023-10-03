@@ -12,6 +12,8 @@ class Environment:
     number_of_countries: int
     number_of_currencies: int
     number_of_transactions: int
+    verbose: bool
+        whether to log progress of the simulation
     alpha: float
         how much more money is an agent expected to have 
         in his home currency
@@ -30,6 +32,7 @@ class Environment:
                        number_of_countries: int = 4,
                        number_of_currencies: int = 4,
                        number_of_transactions: int = 100,
+                       verbose: bool = True,
                        alpha: float = 2,
                        beta: float = 0.5,
                        gamma: float = 2,
@@ -43,6 +46,7 @@ class Environment:
         self.number_of_countries = number_of_countries
         self.number_of_currencies = number_of_currencies
         self.number_of_transactions = number_of_transactions
+        self.verbose = verbose
         self.alpha = alpha 
         self.beta = beta 
         self.gamma = gamma
@@ -60,13 +64,16 @@ class Environment:
             self.countries_currencies = np.random.permutation(self.number_of_currencies)
         else:
             diff = self.number_of_countries - self.number_of_currencies
-            self.countries_currencies = np.concatenate(np.random.permutation(self.number_of_currencies), 
-                                                       np.random.randint(self.number_of_currencies, size=diff))
+            self.countries_currencies = np.concatenate((np.random.permutation(self.number_of_currencies), 
+                                                        np.random.randint(self.number_of_currencies, size=diff)) )
+
+        self.probabilities_of_choosing_countries = [1 / (self.number_of_countries + (self.gamma - 1)) for _ in range(self.number_of_countries)]
+        self.home_country_probability = self.gamma * self.probabilities_of_choosing_countries[0]
 
         self.agents = [Agent(self.number_of_currencies, self.number_of_countries, self.countries_currencies, self.alpha) for _ in range(population_size)]
         self.history_of_agents = [self.agents]
 
-        self.history_of_total_value_of_transactions = [[0] * self.number_of_currencies]
+        self.history_of_total_value_of_transactions = []
 
     def create_currency_exchange(self):
         """
@@ -115,14 +122,13 @@ class Environment:
 
             # record it for future plotting
             transaction_value = self.currency_exchange_matrix[chosen_currency][0] * transaction_value_in_chosen_currency
-            episode_total_value_of_transactions[chosen_currency] += transaction_value
+            episode_total_value_of_transactions[chosen_currency] += transaction_value_in_chosen_currency
 
             # actual transfer of money
-            self.agents[buyer_index].wallet[chosen_currency] -= transaction_value
-            self.agents[seller_index].wallet[chosen_currency] += transaction_value
+            self.agents[buyer_index].wallet[chosen_currency] -= transaction_value_in_chosen_currency
+            self.agents[seller_index].wallet[chosen_currency] += transaction_value_in_chosen_currency
 
         self.history_of_total_value_of_transactions.append(episode_total_value_of_transactions)
-
         self.history_of_agents.append(self.agents)
 
     def choose_agents_for_transaction(self):
@@ -133,22 +139,17 @@ class Environment:
 
         # calculate the probabilities of picking other agents that will take part in the transaction
 
-        probabilities = [-1] * self.population_size
-        probabilities[buyer_index] = 0
+        probabilities = self.probabilities_of_choosing_countries.copy()
+        probabilities[buyer.country_id] = self.home_country_probability
 
-        for i in range(self.population_size):
-            if i == buyer_index: 
-                continue
+        chosen_country = np.random.choice(self.number_of_countries, p = probabilities) 
 
-            foreign_country_probability = 1 / (self.number_of_countries + (self.gamma - 1))
-            home_country_probability = self.gamma * foreign_country_probability
+        relevant_agent_indexes = []
+        for i, agent in enumerate(self.agents):
+            if agent.country_id == chosen_country:
+                relevant_agent_indexes.append(i)
 
-            if self.agents[i].country_id == buyer.country_id:
-                probabilities[i] = home_country_probability
-            else:
-                probabilities[i] = foreign_country_probability    
-
-        seller_index = np.random.choice(self.population_size, p=probabilities)
+        seller_index = np.random.choice(relevant_agent_indexes)
         seller = self.agents[seller_index]
 
         return buyer_index, buyer, seller_index, seller
@@ -157,14 +158,15 @@ class Environment:
         """
             total value of transactions in each currency plotted through time
         """
+        import matplotlib.pyplot as plt
 
         lines = [[] for _ in range(self.number_of_currencies)]
 
         for episode in self.history_of_total_value_of_transactions:
-            for currency, primary_value in enumerate(episode):
-                lines[currency].append(primary_value)
+            for i, value in enumerate(episode):
+                lines[i].append(value)
 
-        import matplotlib.pyplot as plt
-
-        plt.plot(lines)
+        for i in range(self.number_of_currencies):
+            plt.plot(lines[i], label=f"Currency {i} (value {self.currency_exchange_matrix[0][i]})")
+        plt.legend()
         plt.show()
