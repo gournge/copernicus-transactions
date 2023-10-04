@@ -137,7 +137,7 @@ class Environment:
         buyer_index = np.random.randint(self.population_size)
         buyer = self.agents[buyer_index]
 
-        # calculate the probabilities of picking other agents that will take part in the transaction
+        # calculate the probabilities of choosing a country 
 
         probabilities = self.probabilities_of_choosing_countries.copy()
         probabilities[buyer.country_id] = self.home_country_probability
