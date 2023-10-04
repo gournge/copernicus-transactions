@@ -2,10 +2,17 @@ import environment
 
 if __name__ == '__main__':
 
-    env = environment.Environment(population_size=1000, number_of_countries=5, number_of_transactions=50, delta=10)
+    env = environment.Environment(population_size = 1000, 
+                                  number_of_countries = 6, 
+                                  number_of_transactions = 100, 
+                                  alpha = 4, 
+                                  beta = 0.5,
+                                  gamma = 2,
+                                  delta = 2, 
+                                  epsilon = 0.25)
 
-    for i in range(500):
+    for i in range(1000):
         env.one_episode()
         print("completed episode numer", i + 1)
 
-    env.show_history()
+    env.show_history(save=True)

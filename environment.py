@@ -25,6 +25,8 @@ class Environment:
         with someone from their own country
     delta: float
         how much more impact on the probability of choosing currencies does their value have 
+    epsilon: float
+        how much impact on the probability of choosing currencies does agent's wallet contents have 
         
     """
 
@@ -36,7 +38,8 @@ class Environment:
                        alpha: float = 2,
                        beta: float = 0.5,
                        gamma: float = 2,
-                       delta: float = 1.5):
+                       delta: float = 1.5,
+                       epsilon: float = 0.5):
 
         
         if number_of_currencies > number_of_countries:
@@ -51,6 +54,7 @@ class Environment:
         self.beta = beta 
         self.gamma = gamma
         self.delta = delta
+        self.epsilon = epsilon
 
         self.currency_exchange_matrix = None
         self.create_currency_exchange()
@@ -114,7 +118,11 @@ class Environment:
             for currency in range(1, self.number_of_currencies):
                 buyer_total_budget += self.currency_exchange_matrix[0][currency] * buyer.wallet[currency]
 
-            chosen_currency = np.random.choice(self.number_of_currencies, p=self.probabilities_of_choosing_currencies)
+            chosen_currency = None
+            if self.epsilon == 0:
+                chosen_currency = np.random.choice(self.number_of_currencies, p=self.probabilities_of_choosing_currencies)
+            else:
+                chosen_currency = buyer.choose_currency(self.currency_exchange_matrix[0], self.delta, self.epsilon)
 
             maximum_transaction_value = min( self.currency_exchange_matrix[0][chosen_currency] * (buyer_total_budget * self.beta), buyer.wallet[chosen_currency])
 
@@ -137,11 +145,9 @@ class Environment:
         buyer_index = np.random.randint(self.population_size)
         buyer = self.agents[buyer_index]
 
-        # calculate the probabilities of choosing a country 
-
+        # choose a country
         probabilities = self.probabilities_of_choosing_countries.copy()
         probabilities[buyer.country_id] = self.home_country_probability
-
         chosen_country = np.random.choice(self.number_of_countries, p = probabilities) 
 
         relevant_agent_indexes = []
@@ -154,19 +160,74 @@ class Environment:
 
         return buyer_index, buyer, seller_index, seller
 
-    def show_history(self):
+    def show_history(self, save: bool = False, moving_average_window = 10):
         """
-            total value of transactions in each currency plotted through time
+            Total value of transactions in each currency plotted through time.
+            Additional line showing how balance (respective to their relative value) changes.
+
+            Saving a figure saves it with today's datetime and hour.
         """
-        import matplotlib.pyplot as plt
 
         lines = [[] for _ in range(self.number_of_currencies)]
 
+        standard_deviation_line = []
         for episode in self.history_of_total_value_of_transactions:
             for i, value in enumerate(episode):
                 lines[i].append(value)
 
+            var = 0
+            tot_inverse_currency_values = sum(self.currency_exchange_matrix[0])
+            tot_episode_currency_values = sum(1 / value for value in episode)
+            for i, value in enumerate(episode):
+                var += ((1 / self.currency_exchange_matrix[0][i]) / tot_inverse_currency_values - value / tot_episode_currency_values) ** 2
+            standard_deviation_from_balanced_transaction_values = np.sqrt(var)
+
+            standard_deviation_line.append(standard_deviation_from_balanced_transaction_values)
+
+        for i, line in enumerate(lines):
+            lines[i] = np.convolve(line, np.ones(moving_average_window)/moving_average_window, mode='valid')
+        standard_deviation_line = np.convolve(standard_deviation_line, np.ones(moving_average_window)/moving_average_window, mode='valid')
+
+        import matplotlib.pyplot as plt
+
+        fig, ax1 = plt.subplots()
+        fig.set_size_inches(15, 10)
+
+        ax1.set_xlabel("Episode number")
+        ax1.set_ylabel("Transaction value")
+
+        ax2 = ax1.twinx()
+        ax2.set_ylabel("Standard deviation")
+
+        ax2.plot(standard_deviation_line, label = "Standard deviation from a perfect\ntransaction value distribution", linestyle='--', color='black')
+
+        plt.title("Total value of transactions in each episode")
         for i in range(self.number_of_currencies):
-            plt.plot(lines[i], label=f"Currency {i} (value {self.currency_exchange_matrix[0][i]})")
-        plt.legend()
-        plt.show()
+            ax1.plot(lines[i], label=f"Currency {i} (value {self.currency_exchange_matrix[0][i]})")
+        ax1.legend(loc='upper right', framealpha=1)
+        ax2.legend(loc='upper left', framealpha=1)
+
+        parameter_text = f"""
+                            Parameters:
+                                convolution size = {moving_average_window}
+                                population = {self.population_size}
+                                countries = {self.number_of_countries}
+                                currencies = {self.number_of_currencies}
+                                transactions = {self.number_of_transactions}
+                                alpha = {self.alpha}
+                                beta = {self.beta}
+                                gamma = {self.gamma}
+                                delta = {self.delta}
+                                epsilon = {self.epsilon}
+                           """
+
+        plt.tight_layout()
+        plt.subplots_adjust(right = 0.8)
+        plt.figtext(0.97, 0.5, parameter_text, va='center', ha='right', fontsize=10)
+
+        if save:
+            from datetime import datetime
+            plt.savefig('experiment images\experiment ' + str(datetime.now()).replace(':', '').replace('.', '') + '.png')
+        else:
+            plt.show()  
+
