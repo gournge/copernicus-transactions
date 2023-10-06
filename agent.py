@@ -38,27 +38,27 @@ class Agent:
 
         """
 
+        num_currencies = len(currency_values)
+
         # valued by the first currency for simplicity
         wallet_value = [self.wallet[i] * currency_value for i, currency_value in enumerate(currency_values)]
         maximum_transaction_value = sum(wallet_value) * beta
         transaction_value = min(maximum_transaction_value * np.random.rand(), max(wallet_value)) # transaction value can't exceed the maximum in a currency
 
-        discard_currencies = []
-        for i, value in enumerate(self.wallet):
-            if value * currency_values[i] < transaction_value:
-                discard_currencies.append(i)
+        valid_currencies = []
+        for i, value in enumerate(self.wallet): 
+            if value * currency_values[i] >= transaction_value:
+                valid_currencies.append(i)
 
-        perceived_currency_values = []
-        for i, currency_value in enumerate(currency_values):
-
-            wallet_currency_value = currency_value * self.wallet[i]
-
-            perceived_currency_values.append( (wallet_currency_value ** epsilon) * (currency_value ** delta) )
+        perceived_currency_values = [0] * num_currencies
+        for i in valid_currencies:
+            wallet_currency_value = currency_values[i] * self.wallet[i]
+            perceived_currency_values[i] = (wallet_currency_value ** epsilon) * (currency_values[i] ** delta)
                 
         # the lower the value the higher the probability 
-        s = sum( (1 / value if i not in discard_currencies else 0) for i, value in enumerate(perceived_currency_values))
-        probabilities = [(1 / (value * s) if i not in discard_currencies else 0) for i, value in enumerate(perceived_currency_values)]
+        s = sum( (1 / value if i in valid_currencies else 0) for i, value in enumerate(perceived_currency_values))
+        probabilities = [(1 / (value * s) if i in valid_currencies else 0) for i, value in enumerate(perceived_currency_values)]
 
-        chosen_currency = np.random.choice(len(currency_values), p = probabilities)
+        chosen_currency = np.random.choice(num_currencies, p = probabilities)
 
         return chosen_currency, transaction_value / currency_values[chosen_currency]

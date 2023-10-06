@@ -8,7 +8,7 @@ if __name__ == '__main__':
                                   alpha = 4, 
                                   beta = 0.5,
                                   gamma = 2,
-                                  delta = 2, 
+                                  delta = 4, 
                                   epsilon = 0.5)
 
     for i in range(1000):

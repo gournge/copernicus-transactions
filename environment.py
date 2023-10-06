@@ -155,6 +155,11 @@ class Environment:
 
         lines = [[] for _ in range(self.number_of_currencies)]
 
+        how_many_agents_have_this_currency = [0] * self.number_of_currencies
+        for agent in self.agents:
+            currency = self.countries_currencies[agent.country_id]
+            how_many_agents_have_this_currency[currency] += 1
+
         standard_deviation_line = []
         for episode in self.history_of_total_value_of_transactions:
             for i, value in enumerate(episode):
@@ -170,7 +175,7 @@ class Environment:
             standard_deviation_line.append(standard_deviation_from_balanced_transaction_values)
 
         for i, line in enumerate(lines):
-            lines[i] = np.convolve(line, np.ones(moving_average_window)/moving_average_window, mode='valid')
+            lines[i] = np.convolve(line, np.ones(moving_average_window)/moving_average_window, mode='valid') / how_many_agents_have_this_currency[i]
         standard_deviation_line = np.convolve(standard_deviation_line, np.ones(moving_average_window)/moving_average_window, mode='valid')
 
         import matplotlib.pyplot as plt
@@ -186,7 +191,7 @@ class Environment:
 
         ax2.plot(standard_deviation_line, label = "Standard deviation from a perfect\ntransaction value distribution", linestyle='--', color='black')
 
-        plt.title("Total value of transactions in each episode")
+        plt.title("Total value of transactions in each episode\ndivided by the number of agents to which it is a home currency")
         for i in range(self.number_of_currencies):
             ax1.plot(lines[i], label=f"Currency {i} (value {self.currency_exchange_matrix[0][i]})")
         ax1.legend(loc='upper right', framealpha=1)
@@ -212,7 +217,6 @@ class Environment:
 
         if save:    
             from datetime import datetime
-            plt.savefig('experiment images\experiment ' + str(datetime.now()).replace(':', '').replace('.', '') + '.png')
+            plt.savefig('experiment images\experiment adjusted by population' + str(datetime.now()).replace(':', '').replace('.', '') + '.png')
         else:
             plt.show()  
-
