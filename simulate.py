@@ -9,7 +9,7 @@ if __name__ == '__main__':
                                   beta = 0.5,
                                   gamma = 2,
                                   delta = 2, 
-                                  epsilon = 0.25)
+                                  epsilon = 0.5)
 
     for i in range(1000):
         env.one_episode()

@@ -15,14 +15,11 @@ class Environment:
     verbose: bool
         whether to log progress of the simulation
     alpha: float
-        how much more money is an agent expected to have 
-        in his home currency
+        how much more money is an agent expected to have in his home currency
     beta: float
-        what maximum percent of his budget 
-        is an agent willing to use for a transaction 
+        what maximum percent of his budget is an agent willing to use for a transaction 
     gamma: float
-        how much more likely is an agent to make a transaction 
-        with someone from their own country
+        how much more likely is an agent to make a transaction  with someone from their own country
     delta: float
         how much more impact on the probability of choosing currencies does their value have 
     epsilon: float
@@ -109,27 +106,15 @@ class Environment:
 
         episode_total_value_of_transactions = [0] * self.number_of_currencies
 
+        exchange_rate_to_primary_currency = [self.currency_exchange_matrix[i][0] for i in range(self.number_of_currencies)]
+
         for _ in range(self.number_of_transactions):
             
             buyer_index, buyer, seller_index, seller = self.choose_agents_for_transaction()
 
-            # valued by the first currency for simplicity
-            buyer_total_budget = seller.wallet[0]
-            for currency in range(1, self.number_of_currencies):
-                buyer_total_budget += self.currency_exchange_matrix[0][currency] * buyer.wallet[currency]
-
-            chosen_currency = None
-            if self.epsilon == 0:
-                chosen_currency = np.random.choice(self.number_of_currencies, p=self.probabilities_of_choosing_currencies)
-            else:
-                chosen_currency = buyer.choose_currency(self.currency_exchange_matrix[0], self.delta, self.epsilon)
-
-            maximum_transaction_value = min( self.currency_exchange_matrix[0][chosen_currency] * (buyer_total_budget * self.beta), buyer.wallet[chosen_currency])
-
-            transaction_value_in_chosen_currency = np.random.rand() * maximum_transaction_value
+            chosen_currency, transaction_value_in_chosen_currency = buyer.choose_currency_and_transaction_value(exchange_rate_to_primary_currency, self.beta, self.delta, self.epsilon)
 
             # record it for future plotting
-            transaction_value = self.currency_exchange_matrix[chosen_currency][0] * transaction_value_in_chosen_currency
             episode_total_value_of_transactions[chosen_currency] += transaction_value_in_chosen_currency
 
             # actual transfer of money
@@ -225,7 +210,7 @@ class Environment:
         plt.subplots_adjust(right = 0.8)
         plt.figtext(0.97, 0.5, parameter_text, va='center', ha='right', fontsize=10)
 
-        if save:
+        if save:    
             from datetime import datetime
             plt.savefig('experiment images\experiment ' + str(datetime.now()).replace(':', '').replace('.', '') + '.png')
         else:
