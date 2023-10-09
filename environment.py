@@ -174,7 +174,6 @@ class Environment:
                 It is the maximum value in matrix relationship diagram to scale for/
         """
 
-
         lines = [[] for _ in range(self.number_of_currencies)]
 
         how_many_agents_have_this_currency = [0] * self.number_of_currencies
@@ -213,7 +212,7 @@ class Environment:
         ax0 = fig.add_subplot(spec[0, :])
         other_axes = [fig.add_subplot(spec[1, k]) for k in range(self.number_of_currencies)]
         ax1 = ax0.twinx()
-        ax1.set_ylabel("Standard deviation")
+        ax1.set_ylabel("Odchylenie standardowe")
 
         matrices = []
         for i in range(self.number_of_currencies):
@@ -233,16 +232,16 @@ class Environment:
         for i, matrix in enumerate(matrices):
             # Create the matrix diagram in the bottom row
             other_axes[i].imshow(matrix, cmap='viridis', interpolation='nearest', vmin=m, vmax=repr_matrix_vmax)
-            other_axes[i].set_title(f'Currency {i}')
+            other_axes[i].set_title(f'Waluta {i}')
 
-        ax0.set_xlabel("Episode number")
-        ax0.set_ylabel("Transaction value")
+        ax0.set_xlabel("Numer epizodu")
+        ax0.set_ylabel("wartość transakcji")
 
-        ax1.plot(standard_deviation_line, label = "Standard deviation from a perfect\ntransaction value distribution", linestyle='--', color='black')
+        ax1.plot(standard_deviation_line, label = "Odchylenie standardowe od idealnego\n rozkładu cen", linestyle='--', color='black')
 
-        ax0.set_title("Total value of transactions in each episode\ndivided by the number of agents to which it is a home currency")
+        ax0.set_title("Całkowita wartość transakcji w danej walucie w każdym epizodzie\npodzielona przez ilość agentów dla których jest to waluta domowa")
         for i in range(self.number_of_currencies):
-            ax0.plot(lines[i], label=f"Currency {i} (value {self.currency_exchange_matrix[0][i]}, average {np.mean(lines[i]):.3f})", alpha=0.5)
+            ax0.plot(lines[i], label=f"Waluta {i} (wartość {self.currency_exchange_matrix[0][i]}, średnia {np.mean(lines[i]):.3f})", alpha=0.5)
 
         ax1.set_ylim(top=2*max(standard_deviation_line))
 
@@ -250,30 +249,30 @@ class Environment:
         ax1.legend(loc='upper left', framealpha=1)
 
         parameter_text = f"""
-                            Parameters:
-                                convolution size = {moving_average_window}
-                                population = {self.population_size}
-                                countries = {self.number_of_countries}
-                                currencies = {self.number_of_currencies}
-                                transactions = {self.number_of_transactions}
+                            Parametry:
+                                rozmiar konwolucji = {moving_average_window}
+                                populacja = {self.population_size}
+                                kraje = {self.number_of_countries}
+                                waluty = {self.number_of_currencies}
+                                transakcje = {self.number_of_transactions}
                                 alpha = {self.alpha}
                                 beta = {self.beta}
                                 gamma = {self.gamma}
                                 delta = {self.delta}
                                 epsilon = {self.epsilon}
 
-                            Countries:
+                            Kraje:
                            """
         
         for i, currency in enumerate(self.countries_currencies):
-            parameter_text += f'country {i} - currency {currency}\n'
+            parameter_text += f'kraj {i} - waluta {currency}\n'
 
-        fig.text(.5, .05, 'Color on the (x, y) position in each currency relationship matrix represents\n what percentage of all transactions from country x to country y are transactions in this currency.', ha='center')
+        fig.text(.5, .05, 'Kolor w pozycji (x, y) w każdej macierzy relacji dla każdej waluty reprezentuje \n jaką proporcję wszystkich transakcji z państwa x do państwa y są transakcje w tej walucie.', ha='center')
         plt.subplots_adjust(right = 0.8, wspace=0.3, hspace=0.1)
         plt.figtext(0.97, 0.5, parameter_text, va='center', ha='right', fontsize=10)
 
         if save:    
             from datetime import datetime
-            plt.savefig('experiment images\experiment with currency relationship ' + str(datetime.now()).replace(':', '').replace('.', '') + '.png')
+            plt.savefig('experiment images\eksperyment z macierzą relacji ' + str(datetime.now()).replace(':', '').replace('.', '') + '.png')
         else:
             plt.show()  
