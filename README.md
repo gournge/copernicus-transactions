@@ -27,3 +27,7 @@ python \.simulate.py --help
 ```
 
 for additional information.
+
+## Notes
+
+`delta = 1 / 47.15% = 2.12 ` makes sense as 47.15% is the average percent of export in relation to GDP (source: https://www.theglobaleconomy.com/rankings/exports/)
