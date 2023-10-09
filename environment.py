@@ -12,6 +12,8 @@ class Environment:
     number_of_countries: int
     number_of_currencies: int
     number_of_transactions: int
+    even_countries_currency_spread: bool
+        whether there should be an evenly distributed spread of assigned currencies between countries
     verbose: bool
         whether to log progress of the simulation
     alpha: float
@@ -31,6 +33,7 @@ class Environment:
                        number_of_countries: int = 4,
                        number_of_currencies: int = 4,
                        number_of_transactions: int = 100,
+                       even_countries_currency_spread: bool = True,
                        verbose: bool = True,
                        alpha: float = 2,
                        beta: float = 0.5,
@@ -52,6 +55,7 @@ class Environment:
         self.gamma = gamma
         self.delta = delta
         self.epsilon = epsilon
+        self.even_countries_currency_spread = even_countries_currency_spread
 
         self.currency_exchange_matrix = None
         self.create_currency_exchange()
@@ -61,12 +65,16 @@ class Environment:
         self.probabilities_of_choosing_currencies = [1 / ((value ** self.delta)  * sum_of_inverses) for value in self.currency_exchange_matrix[0]]
 
         self.countries_currencies = None 
-        if self.number_of_countries == self.number_of_currencies:
-            self.countries_currencies = np.random.permutation(self.number_of_currencies)
+        if self.even_countries_currency_spread:
+            self.countries_currencies = [i % self.number_of_currencies for i in range(self.number_of_countries)]
         else:
-            diff = self.number_of_countries - self.number_of_currencies
-            self.countries_currencies = np.concatenate((np.random.permutation(self.number_of_currencies), 
+            if self.number_of_countries == self.number_of_currencies:
+                self.countries_currencies = np.random.permutation(self.number_of_currencies)
+            else:
+                diff = self.number_of_countries - self.number_of_currencies
+                self.countries_currencies = np.concatenate((np.random.permutation(self.number_of_currencies), 
                                                         np.random.randint(self.number_of_currencies, size=diff)) )
+        self.countries_currencies = sorted(self.countries_currencies)
 
         self.probabilities_of_choosing_countries = [1 / (self.number_of_countries + (self.gamma - 1)) for _ in range(self.number_of_countries)]
         self.home_country_probability = self.gamma * self.probabilities_of_choosing_countries[0]
@@ -75,6 +83,8 @@ class Environment:
         self.history_of_agents = [self.agents]
 
         self.history_of_total_value_of_transactions = []
+
+        self.transactions_total_record = np.zeros((self.number_of_countries, self.number_of_countries, self.number_of_currencies))
 
     def create_currency_exchange(self):
         """
@@ -121,6 +131,10 @@ class Environment:
             self.agents[buyer_index].wallet[chosen_currency] -= transaction_value_in_chosen_currency
             self.agents[seller_index].wallet[chosen_currency] += transaction_value_in_chosen_currency
 
+            # print(self.hsi)
+            # print(buyer.country_id, seller.country_id, chosen_currency)
+            self.transactions_total_record[buyer.country_id][seller.country_id][chosen_currency] += transaction_value_in_chosen_currency
+
         self.history_of_total_value_of_transactions.append(episode_total_value_of_transactions)
         self.history_of_agents.append(self.agents)
 
@@ -145,13 +159,21 @@ class Environment:
 
         return buyer_index, buyer, seller_index, seller
 
-    def show_history(self, save: bool = False, moving_average_window = 10):
+    def show_history(self, save: bool = False, moving_average_window: int = 10, repr_matrix_vmax: float = -1):
         """
             Total value of transactions in each currency plotted through time.
             Additional line showing how balance (respective to their relative value) changes.
 
             Saving a figure saves it with today's datetime and hour.
+
+            save: bool
+            moving_average_window: int
+            repr_matrix_vmax: float
+                If -1 it is set to 1/number_of_currencies.\n
+                Otherwise between 0 and 1.\n
+                It is the maximum value in matrix relationship diagram to scale for/
         """
+
 
         lines = [[] for _ in range(self.number_of_currencies)]
 
@@ -180,22 +202,52 @@ class Environment:
 
         import matplotlib.pyplot as plt
 
-        fig, ax1 = plt.subplots()
+        # Create a figure with subplots
+        # fig, axes = plt.subplots(2, self.number_of_currencies, figsize=(15, 7), layout='constrained')
+        fig = plt.figure(figsize=(15, 7), layout='constrained')
+
+        spec = fig.add_gridspec(ncols=self.number_of_currencies, nrows=2)
         fig.set_size_inches(15, 10)
+        fig.set_constrained_layout_pads(w_pad=0.8, h_pad=0.25, wspace=0, hspace=0)
 
-        ax1.set_xlabel("Episode number")
-        ax1.set_ylabel("Transaction value")
+        ax0 = fig.add_subplot(spec[0, :])
+        other_axes = [fig.add_subplot(spec[1, k]) for k in range(self.number_of_currencies)]
+        ax1 = ax0.twinx()
+        ax1.set_ylabel("Standard deviation")
 
-        ax2 = ax1.twinx()
-        ax2.set_ylabel("Standard deviation")
-
-        ax2.plot(standard_deviation_line, label = "Standard deviation from a perfect\ntransaction value distribution", linestyle='--', color='black')
-
-        plt.title("Total value of transactions in each episode\ndivided by the number of agents to which it is a home currency")
+        matrices = []
         for i in range(self.number_of_currencies):
-            ax1.plot(lines[i], label=f"Currency {i} (value {self.currency_exchange_matrix[0][i]})")
-        ax1.legend(loc='upper right', framealpha=1)
-        ax2.legend(loc='upper left', framealpha=1)
+            matrix = np.zeros((self.number_of_countries, self.number_of_countries))
+
+            for x in range(self.number_of_countries):
+                for y in range(self.number_of_countries):
+                    matrix[x][y] = self.transactions_total_record[x][y][i] / sum(self.transactions_total_record[x][y])
+
+            matrices.append(matrix)
+
+        if repr_matrix_vmax == -1:
+            repr_matrix_vmax = np.amax(matrices)
+
+        m = np.amin(matrices)
+        # Loop through the number of matrices
+        for i, matrix in enumerate(matrices):
+            # Create the matrix diagram in the bottom row
+            other_axes[i].imshow(matrix, cmap='viridis', interpolation='nearest', vmin=m, vmax=repr_matrix_vmax)
+            other_axes[i].set_title(f'Currency {i}')
+
+        ax0.set_xlabel("Episode number")
+        ax0.set_ylabel("Transaction value")
+
+        ax1.plot(standard_deviation_line, label = "Standard deviation from a perfect\ntransaction value distribution", linestyle='--', color='black')
+
+        ax0.set_title("Total value of transactions in each episode\ndivided by the number of agents to which it is a home currency")
+        for i in range(self.number_of_currencies):
+            ax0.plot(lines[i], label=f"Currency {i} (value {self.currency_exchange_matrix[0][i]}, average {np.mean(lines[i]):.3f})", alpha=0.5)
+
+        ax1.set_ylim(top=2*max(standard_deviation_line))
+
+        ax0.legend(loc='upper right', framealpha=1)
+        ax1.legend(loc='upper left', framealpha=1)
 
         parameter_text = f"""
                             Parameters:
@@ -209,14 +261,19 @@ class Environment:
                                 gamma = {self.gamma}
                                 delta = {self.delta}
                                 epsilon = {self.epsilon}
-                           """
 
-        plt.tight_layout()
-        plt.subplots_adjust(right = 0.8)
+                            Countries:
+                           """
+        
+        for i, currency in enumerate(self.countries_currencies):
+            parameter_text += f'country {i} - currency {currency}\n'
+
+        fig.text(.5, .05, 'Color on the (x, y) position in each currency relationship matrix represents\n what percentage of all transactions from country x to country y are transactions in this currency.', ha='center')
+        plt.subplots_adjust(right = 0.8, wspace=0.3, hspace=0.1)
         plt.figtext(0.97, 0.5, parameter_text, va='center', ha='right', fontsize=10)
 
         if save:    
             from datetime import datetime
-            plt.savefig('experiment images\experiment adjusted by population' + str(datetime.now()).replace(':', '').replace('.', '') + '.png')
+            plt.savefig('experiment images\experiment with currency relationship ' + str(datetime.now()).replace(':', '').replace('.', '') + '.png')
         else:
             plt.show()  
