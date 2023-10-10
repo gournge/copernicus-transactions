@@ -46,7 +46,7 @@ if __name__ == '__main__':
                                   beta = args.beta,
                                   gamma = args.gamma,
                                   delta = args.delta, 
-                                  epsilon = args.epsilon
+                                  epsilon = args.epsilon,
                                   zeta = args.zeta)
 
     env
