@@ -16,15 +16,15 @@ def get_args():
     
     parser.add_argument("--alpha", type=float, default=2, help='how much more money is an agent expected to have in his home currency')
     parser.add_argument("--beta", type=float, default=0.5, help='what maximum percent of his budget is an agent willing to use for a transaction')
-    parser.add_argument("--gamma", type=float, default=2, help='how much more likely is an agent to make a transaction  with someone from their own country')
+    parser.add_argument("--gamma", type=float, default=0.0086, help='how much more likely is an agent to make a transaction  with someone from their own country')
     parser.add_argument("--delta", type=float, default=1.5, help='how much more impact on the probability of choosing currencies does their value have')
     parser.add_argument("--epsilon", type=float, default=0.5, help='how much impact on the probability of choosing currencies does agent\'s wallet contents have')
+    parser.add_argument("--zeta", type=float, default=0.5, help='how much impact on the probability of choosing currencies does agent\'s wallet contents have')
 
     parser.add_argument("--number_of_episodes", type=int, default=500)
 
     parser.add_argument("--save_figure", type=str, default='False', choices=['True', 'False'])
     parser.add_argument("--figure_convolution_window_size", type=int, default=10, help='with how many values do you average out curve')
-    parser.add_argument("--repr_matrix_vmax", type=float, default=-1, help='If -1 it is set to 1/number_of_currencies.\n Otherwise between 0 and 1.\n It is the maximum value in matrix relationship diagram to scale for')
 
     args = parser.parse_args()
 
@@ -46,7 +46,8 @@ if __name__ == '__main__':
                                   beta = args.beta,
                                   gamma = args.gamma,
                                   delta = args.delta, 
-                                  epsilon = args.epsilon)
+                                  epsilon = args.epsilon
+                                  zeta = args.zeta)
 
     env
 
@@ -55,6 +56,4 @@ if __name__ == '__main__':
         if args.verbose == 'True':
             print("completed episode number", i + 1)
 
-    env.show_history(save=(args.save_figure == 'True'), 
-                     moving_average_window=args.figure_convolution_window_size,
-                     repr_matrix_vmax=args.repr_matrix_vmax)
+    env.show_history(save=(args.save_figure == 'True'), moving_average_window=args.figure_convolution_window_size)

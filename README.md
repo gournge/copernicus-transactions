@@ -7,17 +7,18 @@ Simulation aiming to research whether the Copernicus-Gresham's law defined by Ni
 python \.simulate.py --population_size 1000
                      --number_of_countries 4
                      --number_of_currencies 4
-                     --number_of_transactions 100
                      --even_countries_currencies_spread True
+                     --number_of_transactions 100
+                     --number_of_episodes 500
+                     --figure_convolution_window_size 10
+                     --save_figure False
                      --verbose True
                      --alpha 2
                      --beta 0.5
-                     --gamma 2
+                     --gamma 0.0086
                      --delta 1.5
                      --epsilon 0.5
-                     --number_of_episodes 500
-                     --save_figure False
-                     --figure_convolution_window_size 10
+                     --zeta 10
 ```
 
 or type 
@@ -30,4 +31,4 @@ for additional information.
 
 ## Notes
 
-`gamma = 1 / 47.15% = 2.12 ` makes sense as 47.15% is the average percent of export in relation to GDP (source: https://www.theglobaleconomy.com/rankings/exports/)
+`gamma = 100% - 47.15% - 51.99% / 100% = 0.0086 ` makes sense as 47.15% is the average percent of export in relation to GDP and 51.99% is the average import rate (source: https://www.theglobaleconomy.com/rankings/exports/)

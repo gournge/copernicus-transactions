@@ -28,7 +28,8 @@ class Environment:
         how much more impact on the probability of choosing currencies does their value have 
     epsilon: float
         how much impact on the probability of choosing currencies does agent's wallet contents have 
-        
+    zeta: float
+        how much impact on the probability of choosing currencies does the fact that the seller is from the same country has
     """
 
     def __init__(self, population_size: int = 1000,
@@ -41,10 +42,10 @@ class Environment:
                        verbose: bool = True,
                        alpha: float = 2,
                        beta: float = 0.5,
-                       gamma: float = 2,
+                       gamma: float = 0.0086,
                        delta: float = 1.5,
-                       epsilon: float = 0.5):
-
+                       epsilon: float = 0.5,
+                       zeta: float = 4):
         
         if number_of_currencies > number_of_countries:
             raise ValueError("number_of_currencies > number_of_countries")
@@ -60,6 +61,7 @@ class Environment:
         self.gamma = gamma
         self.delta = delta
         self.epsilon = epsilon
+        self.zeta = zeta
         self.even_countries_currency_spread = even_countries_currency_spread
 
         self.currency_exchange_matrix = None
@@ -138,7 +140,7 @@ class Environment:
             
             buyer_index, buyer, seller_index, seller = self.choose_agents_for_transaction()
 
-            chosen_currency, transaction_value_in_chosen_currency = buyer.choose_currency_and_transaction_value(exchange_rate_to_primary_currency, self.beta, self.delta, self.epsilon)
+            chosen_currency, transaction_value_in_chosen_currency = buyer.choose_currency_and_transaction_value(exchange_rate_to_primary_currency, self.beta, self.delta, self.epsilon, self.zeta)
 
             # record it for future plotting
             episode_total_value_of_transactions[chosen_currency] += transaction_value_in_chosen_currency
@@ -192,7 +194,7 @@ class Environment:
         for i in range(self.number_of_currencies):
             self.currency_exchange_matrix[i][self.increment_currency] = 1 / self.currency_exchange_matrix[self.increment_currency][i]
 
-    def show_history(self, save: bool = False, moving_average_window: int = 10, repr_matrix_vmax: float = -1):
+    def show_history(self, save: bool = False, moving_average_window: int = 10):
         """
             Total value of transactions in each currency plotted through time.
             Additional line showing how balance (respective to their relative value) changes.
@@ -201,10 +203,6 @@ class Environment:
 
             save: bool
             moving_average_window: int
-            repr_matrix_vmax: float
-                If -1 it is set to 1/number_of_currencies.\n
-                Otherwise between 0 and 1.\n
-                It is the maximum value in matrix relationship diagram to scale for/
         """
 
         lines = [[] for _ in range(self.number_of_currencies)]
@@ -258,14 +256,12 @@ class Environment:
 
             matrices.append(matrix)
 
-        if repr_matrix_vmax == -1:
-            repr_matrix_vmax = np.amax(matrices)
-
-        m = np.amin(matrices)
+        vmin = np.amin(matrices)
+        vmax = np.amax(matrices)
         # Loop through the number of matrices
         for i, matrix in enumerate(matrices):
             # Create the matrix diagram in the bottom row
-            other_axes[i].imshow(matrix, cmap='viridis', interpolation='nearest', vmin=m, vmax=repr_matrix_vmax)
+            other_axes[i].imshow(matrix, cmap='viridis', interpolation='nearest', vmin=vmin, vmax=vmax)
             other_axes[i].set_title(f'Waluta {i}')
 
         ax0.set_xlabel("Numer epizodu")
@@ -295,6 +291,7 @@ class Environment:
                                 gamma = {self.gamma}
                                 delta = {self.delta}
                                 epsilon = {self.epsilon}
+                                zeta = {self.zeta}
 
                             Kraje:
                            """
@@ -308,6 +305,6 @@ class Environment:
 
         if save:    
             from datetime import datetime
-            plt.savefig('experiment images\eksperyment z macierzą relacji ' + str(datetime.now()).replace(':', '').replace('.', '') + '.png')
+            plt.savefig('experiment images\eksperyment z macierzą relacji i zeta ' + str(datetime.now()).replace(':', '').replace('.', '') + '.png')
         else:
             plt.show()  

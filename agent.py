@@ -20,22 +20,25 @@ class Agent:
         self.country_id = np.random.randint(number_of_countries)
         self.wallet = np.array( [np.random.rand() for _ in range(number_of_currencies)] )
 
-        home_currency = countries_currencies[self.country_id]        
+        self.home_currency = countries_currencies[self.country_id]        
 
-        self.wallet[home_currency] *= alpha
+        self.wallet[self.home_currency] *= alpha
 
-    def choose_currency_and_transaction_value(self, currency_values: list, beta: float, delta: float, epsilon: float):
+    def choose_currency_and_transaction_value(self, currency_values: list, beta: float, delta: float, epsilon: float, zeta: float, same_country: bool):
         """
         
         currency_values: list 
-            of floats
+        same_country: bool
+            whether the seller is from the same country
         beta: float
             what maximum percent of his budget is an agent willing to use for a transaction
         delta: float
             how much more impact on the probability of choosing currencies does their value have 
         epsilon: float
             how much impact on the probability of choosing currencies does agent's wallet contents have 
-
+        zeta: float
+            how much impact on the probability of choosing currencies does the fact that the seller is from the same country has
+            
         """
 
         num_currencies = len(currency_values)
@@ -54,6 +57,8 @@ class Agent:
         for i in valid_currencies:
             wallet_currency_value = currency_values[i] * self.wallet[i]
             perceived_currency_values[i] = (wallet_currency_value ** epsilon) * (currency_values[i] ** delta)
+            if i == self.home_currency:
+                perceived_currency_values[i] / epsilon
                 
         # the lower the value the higher the probability 
         s = sum( (1 / value if i in valid_currencies else 0) for i, value in enumerate(perceived_currency_values))
