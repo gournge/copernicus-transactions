@@ -10,6 +10,7 @@ def get_args():
     parser.add_argument("--number_of_currencies", type=int, default=4)
     parser.add_argument("--number_of_transactions", type=int, default=100)
 
+    parser.add_argument("--increase_weakest_currency", type=str, default='True', choices=['True', 'False'], help='whether to increase the weakest currency over all the episodes')
     parser.add_argument("--even_countries_currency_spread", type=str, default='True', choices=['True', 'False'], help='whether there should be an evenly distributed spread of assigned currencies between countries')
     parser.add_argument("--verbose", type=str, default='True', choices=['True', 'False'], help='whether to log progress of the simulation')
     
@@ -37,19 +38,23 @@ if __name__ == '__main__':
                                   number_of_countries = args.number_of_countries,
                                   number_of_currencies = args.number_of_currencies,
                                   number_of_transactions = args.number_of_transactions,
-                                  even_countries_currency_spread = args.even_countries_currency_spread,
-                                  verbose = args.verbose,
+                                  number_of_episodes = args.number_of_episodes,
+                                  increase_weakest_currency = (args.increase_weakest_currency == 'True'),
+                                  even_countries_currency_spread = (args.even_countries_currency_spread == 'True'),
+                                  verbose = (args.verbose == 'True'),
                                   alpha = args.alpha, 
                                   beta = args.beta,
                                   gamma = args.gamma,
                                   delta = args.delta, 
                                   epsilon = args.epsilon)
 
+    env
+
     for i in range(args.number_of_episodes):
         env.one_episode()
         if args.verbose == 'True':
             print("completed episode number", i + 1)
 
-    env.show_history(save=args.save_figure, 
+    env.show_history(save=(args.save_figure == 'True'), 
                      moving_average_window=args.figure_convolution_window_size,
                      repr_matrix_vmax=args.repr_matrix_vmax)

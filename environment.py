@@ -12,6 +12,8 @@ class Environment:
     number_of_countries: int
     number_of_currencies: int
     number_of_transactions: int
+    increase_weakest_currency: bool
+        whether to increase the weakest currency over all the episodes
     even_countries_currency_spread: bool
         whether there should be an evenly distributed spread of assigned currencies between countries
     verbose: bool
@@ -33,7 +35,9 @@ class Environment:
                        number_of_countries: int = 4,
                        number_of_currencies: int = 4,
                        number_of_transactions: int = 100,
+                       number_of_episodes: int = 1000,
                        even_countries_currency_spread: bool = True,
+                       increase_weakest_currency: bool = True,
                        verbose: bool = True,
                        alpha: float = 2,
                        beta: float = 0.5,
@@ -49,6 +53,7 @@ class Environment:
         self.number_of_countries = number_of_countries
         self.number_of_currencies = number_of_currencies
         self.number_of_transactions = number_of_transactions
+        self.increase_weakest_currency = increase_weakest_currency
         self.verbose = verbose
         self.alpha = alpha 
         self.beta = beta 
@@ -59,6 +64,12 @@ class Environment:
 
         self.currency_exchange_matrix = None
         self.create_currency_exchange()
+
+        self.increment_currency = np.argmax([self.currency_exchange_matrix[c][0] for c in range(self.number_of_currencies)])
+        weakest_currency_value = self.currency_exchange_matrix[self.increment_currency][0]
+        strongest_currency_value = np.min([self.currency_exchange_matrix[c][0] for c in range(self.number_of_currencies)])
+        
+        self.increment_currency_value = 2 * (strongest_currency_value - weakest_currency_value) / number_of_episodes
 
         # the lower the value, the higher the probability of making a transaction in this currency
         sum_of_inverses = sum( 1 / (value ** self.delta) for value in self.currency_exchange_matrix[0])
@@ -73,7 +84,7 @@ class Environment:
             else:
                 diff = self.number_of_countries - self.number_of_currencies
                 self.countries_currencies = np.concatenate((np.random.permutation(self.number_of_currencies), 
-                                                        np.random.randint(self.number_of_currencies, size=diff)) )
+                                                            np.random.randint(self.number_of_currencies, size=diff)) )
         self.countries_currencies = sorted(self.countries_currencies)
 
         self.probabilities_of_choosing_countries = [1 / (self.number_of_countries + (self.gamma - 1)) for _ in range(self.number_of_countries)]
@@ -102,11 +113,16 @@ class Environment:
             # USD, EUR, GBP, CHF
             self.currency_exchange_matrix = [ [1,    0.95, 0.83, 0.92], 
                                               [1.05, 1,    0.87, 0.96], 
-                                              [1.21, 0.15, 1,    1.11],
+                                              [1.21, 1.15, 1,    1.11],
                                               [1.09, 1.04, 0.9,  1   ] ]
 
         else:
             raise NotImplementedError("Change the number of currencies")
+
+        # ensure its balanced
+        for i in range(self.number_of_currencies):
+            for j in range(i, self.number_of_currencies):
+                self.currency_exchange_matrix[i][j] = 1 / self.currency_exchange_matrix[j][i]
 
 
     def one_episode(self):
@@ -131,12 +147,13 @@ class Environment:
             self.agents[buyer_index].wallet[chosen_currency] -= transaction_value_in_chosen_currency
             self.agents[seller_index].wallet[chosen_currency] += transaction_value_in_chosen_currency
 
-            # print(self.hsi)
-            # print(buyer.country_id, seller.country_id, chosen_currency)
             self.transactions_total_record[buyer.country_id][seller.country_id][chosen_currency] += transaction_value_in_chosen_currency
 
         self.history_of_total_value_of_transactions.append(episode_total_value_of_transactions)
         self.history_of_agents.append(self.agents)
+
+        if self.increase_weakest_currency:
+            self.update_currency_exchange()
 
     def choose_agents_for_transaction(self):
         
@@ -158,6 +175,22 @@ class Environment:
         seller = self.agents[seller_index]
 
         return buyer_index, buyer, seller_index, seller
+
+    def update_currency_exchange(self):
+        
+        before = self.currency_exchange_matrix[self.increment_currency][0]
+        self.currency_exchange_matrix[self.increment_currency][0] += self.increment_currency_value
+        relative_change = self.currency_exchange_matrix[self.increment_currency][0] / before
+
+        for i in range(1, self.number_of_currencies):
+
+            if i == self.increment_currency:
+                continue
+            
+            self.currency_exchange_matrix[self.increment_currency][i] *= relative_change
+
+        for i in range(self.number_of_currencies):
+            self.currency_exchange_matrix[i][self.increment_currency] = 1 / self.currency_exchange_matrix[self.increment_currency][i]
 
     def show_history(self, save: bool = False, moving_average_window: int = 10, repr_matrix_vmax: float = -1):
         """
@@ -220,7 +253,8 @@ class Environment:
 
             for x in range(self.number_of_countries):
                 for y in range(self.number_of_countries):
-                    matrix[x][y] = self.transactions_total_record[x][y][i] / sum(self.transactions_total_record[x][y])
+                    s = sum(self.transactions_total_record[x][y])
+                    matrix[x][y] = 0 if s == 0 else self.transactions_total_record[x][y][i] / s
 
             matrices.append(matrix)
 
@@ -241,7 +275,7 @@ class Environment:
 
         ax0.set_title("Całkowita wartość transakcji w danej walucie w każdym epizodzie\npodzielona przez ilość agentów dla których jest to waluta domowa")
         for i in range(self.number_of_currencies):
-            ax0.plot(lines[i], label=f"Waluta {i} (wartość {self.currency_exchange_matrix[0][i]}, średnia {np.mean(lines[i]):.3f})", alpha=0.5)
+            ax0.plot(lines[i], label=f"Waluta {i} (wartość {self.currency_exchange_matrix[0][i]:.3f}, średnia {np.mean(lines[i]):.3f})", alpha=0.5)
 
         ax1.set_ylim(top=2*max(standard_deviation_line))
 
@@ -250,6 +284,7 @@ class Environment:
 
         parameter_text = f"""
                             Parametry:
+                                waluta rośnie = {'Tak' if self.increase_weakest_currency else 'Nie'}
                                 rozmiar konwolucji = {moving_average_window}
                                 populacja = {self.population_size}
                                 kraje = {self.number_of_countries}
@@ -267,7 +302,7 @@ class Environment:
         for i, currency in enumerate(self.countries_currencies):
             parameter_text += f'kraj {i} - waluta {currency}\n'
 
-        fig.text(.5, .05, 'Kolor w pozycji (x, y) w każdej macierzy relacji dla każdej waluty reprezentuje \n jaką proporcję wszystkich transakcji z państwa x do państwa y są transakcje w tej walucie.', ha='center')
+        fig.text(.5, .05, 'Kolor w pozycji (x, y) w każdej macierzy relacji dla każdej waluty reprezentuje \n jaką proporcję wszystkich transakcji z państwa y do państwa x są transakcje w tej walucie.', ha='center')
         plt.subplots_adjust(right = 0.8, wspace=0.3, hspace=0.1)
         plt.figtext(0.97, 0.5, parameter_text, va='center', ha='right', fontsize=10)
 
