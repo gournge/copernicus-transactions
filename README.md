@@ -1,5 +1,5 @@
 # copernicus-transactions
-Simulation aiming to research whether the Copernicus-Gresham's law defined by Nikolas Copernicus (in some shape or form) holds in a multi-currency market.
+Simulation aiming to research whether the Copernicus-Gresham's law defined by Nikolas Copernicus (in some shape or form) holds in a multi-currency market. The model is described in depth on [my website](https://gournge.github.io/posts/Simulating-the-Copernicus-Gresham's-law-in-currency-markets/).
 
 ## Running the simulation 
 
@@ -13,6 +13,7 @@ python \.simulate.py --population_size 1000
                      --figure_convolution_window_size 10
                      --save_figure False
                      --verbose True
+                     --increase_weakest_currency True
                      --alpha 2
                      --beta 0.5
                      --gamma 0.0086

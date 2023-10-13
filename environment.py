@@ -140,7 +140,7 @@ class Environment:
             
             buyer_index, buyer, seller_index, seller = self.choose_agents_for_transaction()
 
-            chosen_currency, transaction_value_in_chosen_currency = buyer.choose_currency_and_transaction_value(exchange_rate_to_primary_currency, self.beta, self.delta, self.epsilon, self.zeta)
+            chosen_currency, transaction_value_in_chosen_currency = buyer.choose_currency_and_transaction_value(exchange_rate_to_primary_currency, self.beta, self.delta, self.epsilon, self.zeta, (buyer.country_id == seller.country_id))
 
             # record it for future plotting
             episode_total_value_of_transactions[chosen_currency] += transaction_value_in_chosen_currency
