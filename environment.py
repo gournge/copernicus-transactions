@@ -262,7 +262,7 @@ class Environment:
         for i, matrix in enumerate(matrices):
             # Create the matrix diagram in the bottom row
             other_axes[i].imshow(matrix, cmap='viridis', interpolation='nearest', vmin=vmin, vmax=vmax)
-            other_axes[i].set_title(f'Waluta {i}')
+            other_axes[i].set_title(f'Currency {i}')
 
         ax0.set_xlabel("Episode number")
         ax0.set_ylabel("Transaction value")
