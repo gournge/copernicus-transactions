@@ -57,8 +57,8 @@ class Agent:
         for i in valid_currencies:
             wallet_currency_value = currency_values[i] * self.wallet[i]
             perceived_currency_values[i] = (wallet_currency_value ** epsilon) * (currency_values[i] ** delta)
-            if i == self.home_currency:
-                perceived_currency_values[i] / epsilon
+            if same_country and i == self.home_currency:
+                perceived_currency_values[i] / zeta
                 
         # the lower the value the higher the probability 
         s = sum( (1 / value if i in valid_currencies else 0) for i, value in enumerate(perceived_currency_values))
