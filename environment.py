@@ -243,7 +243,7 @@ class Environment:
         ax0 = fig.add_subplot(spec[0, :])
         other_axes = [fig.add_subplot(spec[1, k]) for k in range(self.number_of_currencies)]
         ax1 = ax0.twinx()
-        ax1.set_ylabel("Odchylenie standardowe")
+        ax1.set_ylabel("Standard deviation")
 
         matrices = []
         for i in range(self.number_of_currencies):
@@ -264,14 +264,14 @@ class Environment:
             other_axes[i].imshow(matrix, cmap='viridis', interpolation='nearest', vmin=vmin, vmax=vmax)
             other_axes[i].set_title(f'Waluta {i}')
 
-        ax0.set_xlabel("Numer epizodu")
-        ax0.set_ylabel("wartość transakcji")
+        ax0.set_xlabel("Episode number")
+        ax0.set_ylabel("Transaction value")
 
-        ax1.plot(standard_deviation_line, label = "Odchylenie standardowe od idealnego\n rozkładu cen", linestyle='--', color='black')
+        ax1.plot(standard_deviation_line, label = "Standard deviation from a perfect\n transaction value distribution", linestyle='--', color='black')
 
-        ax0.set_title("Całkowita wartość transakcji w danej walucie w każdym epizodzie\npodzielona przez ilość agentów dla których jest to waluta domowa")
+        ax0.set_title("Total transaction value in a given currency in each episode\divided by the number of agents for which it is their home currency")
         for i in range(self.number_of_currencies):
-            ax0.plot(lines[i], label=f"Waluta {i} (wartość {self.currency_exchange_matrix[0][i]:.3f}, średnia {np.mean(lines[i]):.3f})", alpha=0.5)
+            ax0.plot(lines[i], label=f"Currency {i} (valye {self.currency_exchange_matrix[0][i]:.3f}, avg {np.mean(lines[i]):.3f})", alpha=0.5)
 
         ax1.set_ylim(top=2*max(standard_deviation_line))
 
@@ -279,13 +279,13 @@ class Environment:
         ax1.legend(loc='upper left', framealpha=1)
 
         parameter_text = f"""
-                            Parametry:
-                                waluta rośnie = {'Tak' if self.increase_weakest_currency else 'Nie'}
-                                rozmiar konwolucji = {moving_average_window}
-                                populacja = {self.population_size}
-                                kraje = {self.number_of_countries}
-                                waluty = {self.number_of_currencies}
-                                transakcje = {self.number_of_transactions}
+                            Parameters:
+                                increase weakest = {'Tak' if self.increase_weakest_currency else 'Nie'}
+                                convolution size = {moving_average_window}
+                                population = {self.population_size}
+                                countries = {self.number_of_countries}
+                                currencies = {self.number_of_currencies}
+                                transactions = {self.number_of_transactions}
                                 alpha = {self.alpha}
                                 beta = {self.beta}
                                 gamma = {self.gamma}
@@ -293,18 +293,18 @@ class Environment:
                                 epsilon = {self.epsilon}
                                 zeta = {self.zeta}
 
-                            Kraje:
+                            Countries:
                            """
         
         for i, currency in enumerate(self.countries_currencies):
-            parameter_text += f'kraj {i} - waluta {currency}\n'
+            parameter_text += f'country {i} - currency {currency}\n'
 
-        fig.text(.5, .05, 'Kolor w pozycji (x, y) w każdej macierzy relacji dla każdej waluty reprezentuje \n jaką proporcję wszystkich transakcji z państwa y do państwa x są transakcje w tej walucie.', ha='center')
+        fig.text(.5, .05, 'Color in the position (x, y) in each relationship matrix for every currency represents \n what proportion of all transaction from country y to country x are transactions in this currency.', ha='center')
         plt.subplots_adjust(right = 0.8, wspace=0.3, hspace=0.1)
         plt.figtext(0.97, 0.5, parameter_text, va='center', ha='right', fontsize=10)
 
         if save:    
             from datetime import datetime
-            plt.savefig('experiment images\eksperyment z macierzą relacji i zeta ' + str(datetime.now()).replace(':', '').replace('.', '') + '.png')
+            plt.savefig('experiment images\experiment with matrix ' + str(datetime.now()).replace(':', '').replace('.', '') + '.png')
         else:
             plt.show()  
